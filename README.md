@@ -41,7 +41,7 @@ ls()
 ## Installation
 
 ```
-pip install ocm
+pip install python-ocm
 ```
 
 ## Philosophy
