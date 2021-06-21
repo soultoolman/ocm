@@ -284,38 +284,6 @@ class CommandBase(type):
         return type.__new__(cls, clsname, bases, attrs)
 
 
-class Result:
-    def __init__(self, stdout, stderr):
-        self.stdout = stdout
-        self.stderr = stderr
-        self._irs = None
-
-    def __iter__(self):
-        return iter((('stdout', self.stdout), ('stderr', self.stderr)))
-
-    def __repr__(self):
-        return f'<Result: {self.stdout[: 10]}>'
-
-    def _populate_irs(self):
-        self._irs = OrderedDict()
-        for line in self.stdout.split('\n'):
-            temp = line.split(':', 2)
-            if (len(temp) == 3) and (temp[0] == 'OCMIR'):
-                self._irs[temp[1]] = temp[2]
-
-    def __getitem__(self, item):
-        if self._irs is None:
-            self._populate_irs()
-        if item not in self._irs:
-            raise CommandError(f'Intermediate result {item} not found.')
-        value = self._irs[item]
-        try:
-            value = json.loads(value)
-        except json.JSONDecodeError:
-            pass
-        return value
-
-
 class Command(metaclass=CommandBase):
 
     def __init__(self, **kwargs):
@@ -357,7 +325,7 @@ class Command(metaclass=CommandBase):
         return which(self._meta['exe']) is not None
 
     def __call__(self, **kwargs):
-        if ('stdout' in kwargs) or ("stdin" in kwargs):
+        if ('stdout' in kwargs) or ('stdin' in kwargs):
             raise CommandError(
                 'OCM forced to pass in the stdin, stdout parameters, '
                 'these two parameters do not need to be passed'
@@ -367,39 +335,16 @@ class Command(metaclass=CommandBase):
         p = sp.Popen(
             self._to_list(),
             stdout=sp.PIPE,
-            stderr=sp.PIPE,
+            stderr=sp.STDOUT,
             **kwargs
         )
         logger.info(f'Running command {self}')
         logger.info('Output:')
-        stdout = []
         enc = get_enc()
         for raw_line in iter(p.stdout.readline, b''):
             line = raw_line.decode(enc)
-            stdout.append(line)
             logger.info(line.rstrip())
-        stdout = ''.join(stdout)
         p.wait()
         if p.returncode:
-            raise CommandError(f'{self} failed.')
-        stderr = p.stderr.read().decode(enc)
-        return Result(
-            stdout=stdout,
-            stderr=stderr
-        )
-
-
-if __name__ == '__main__':
-    class Ls(Command):
-        is_long = Option('-l', name='is_long', is_flag=True)
-        directory = Argument(name='directory')
-
-        class Meta:
-            exe = 'ls'
-
-    ls = Ls(
-        is_long=True,
-        directory='/'
-    )
-    result = ls()
-    print(result.stdout)
+            logger.warning(f'Command exited with return code {p.returncode}')
+        return p.returncode
