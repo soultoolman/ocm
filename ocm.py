@@ -341,10 +341,12 @@ class Command(metaclass=CommandBase):
         logger.info(f'Running command {self}')
         logger.info('Output:')
         enc = get_enc()
+        lines = []
         for raw_line in iter(p.stdout.readline, b''):
             line = raw_line.decode(enc)
+            lines.append(line)
             logger.info(line.rstrip())
         p.wait()
         if p.returncode:
             logger.warning(f'Command exited with return code {p.returncode}')
-        return p.returncode
+        return p.returncode, ''.join(lines)

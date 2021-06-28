@@ -74,9 +74,9 @@ class LS(Command):
 ls = LS(is_long=True, directory='/Users/dev')
 print(ls.is_long)
 print(ls.directory)
-result = ls()
-print(result.stdout)
-print(result.stderr)
+returncode, stdout = ls()
+print(returncode)
+print(stdout)
 ```
 
 ## Parameter Type
@@ -103,7 +103,7 @@ class Head(Command):
 
 
 head = Head(number=10, file='ocm.py')
-result = head()
+returncode, stdout = head()
 ```
 
 
@@ -156,7 +156,7 @@ class Head(Command):
 
 
 head = Head(number=10, file='ocm.py')
-result = head()
+returncode, stdout = head()
 ```
 
 ## API
